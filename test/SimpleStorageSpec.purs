@@ -1,4 +1,4 @@
-module SimpleStorageSpec (simpleStorageSpec) where
+module SimpleStorageSpec (simpleStorageSpec, simpleStorageEventsSpec) where
 
 import Prelude
 

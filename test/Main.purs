@@ -21,7 +21,7 @@ import ComplexStorageSpec (complexStorageSpec)
 import MockERC20Spec (mockERC20Spec)
 import PayableSpec (payableTestSpec)
 import SimpleErrorSpec (simpleErrorSpec)
-import SimpleStorageSpec (simpleStorageSpec)
+import SimpleStorageSpec (simpleStorageSpec, simpleStorageEventsSpec)
 
 -- | TODO: make the options for deploy config env vars
 main
@@ -38,6 +38,7 @@ main = void <<< launchAff $ do
   testConfig <- buildTestConfig "http://localhost:8545" 60 deployScript
   liftEff $ run' defaultConfig {timeout = Just (60 * 1000)} [consoleReporter] do
     simpleStorageSpec testConfig
+    simpleStorageEventsSpec testConfig
     mockERC20Spec testConfig
     payableTestSpec testConfig
     simpleErrorSpec testConfig
