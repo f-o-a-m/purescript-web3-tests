@@ -18,7 +18,7 @@ build: ## Builds the application
 	pulp build
 
 compile-contracts: ## Compile contracts
-	chanterelle compile
+	chanterelle build
 
 deploy: ## Deploy contracts
 	chanterelle deploy ./output/Main/index.js
