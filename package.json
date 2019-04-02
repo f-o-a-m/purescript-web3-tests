@@ -18,7 +18,7 @@
   "license": "ISC",
   "dependencies": {
     "bn.js": "^4.11.0",
-    "chanterelle": "f-o-a-m/chanterelle#fix-bin",
+    "chanterelle": "f-o-a-m/chanterelle#v2.0.1",
     "bower": "^1.8.2",
     "ethjs-provider-http": "^0.1.6",
     "keccak": "^1.0.2",
