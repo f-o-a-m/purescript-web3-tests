@@ -5,3 +5,4 @@ node_modules
 .psc-ide-port
 .vscode/
 src/Contract
+.psci_modules

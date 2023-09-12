@@ -5,5 +5,7 @@ let upstream =
   with eth-core = ./purescript-eth-core/spago.dhall as Location
   with web3 = ./purescript-web3/spago.dhall as Location
   with web3-generator = ./purescript-web3-generator/spago.dhall as Location
+  with js-bigints = ../purescript-js-bigints/spago.dhall as Location
+
 
 in  upstream
