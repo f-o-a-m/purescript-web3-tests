@@ -1,30 +1,31 @@
 module Web3Spec.Live.FilterSpec (spec) where
 
 import Prelude
+
+import Contract.SimpleStorage as SimpleStorage
 import Control.Monad.Reader (ask)
 import Control.Monad.Trans.Class (lift)
 import Data.Array ((..), snoc, length, head, sortWith)
 import Data.Either (Either)
-import Data.Maybe (Maybe(..))
+import Data.Lens ((?~), (.~), (^.))
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Newtype (wrap, unwrap, un)
 import Data.Ord.Down (Down(..))
 import Data.Traversable (traverse_)
-import Data.Lens ((?~), (.~), (^.))
-import Effect.Aff (Aff, Fiber, error)
-import Effect.Class (liftEffect)
-import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Aff.AVar as AVar
 import Effect.AVar as EAVar
-import Network.Ethereum.Web3 (BlockNumber(..), throwWeb3, Filter, Web3Error, Change(..), _fromBlock, _toBlock, eventFilter, EventAction(..), forkWeb3, ChainCursor(..), Provider, UIntN, _from, _to, embed, Address, event')
+import Effect.Aff (Aff, Fiber, error)
+import Effect.Aff.AVar as AVar
+import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class (liftEffect)
+import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, Web3Error, _from, _fromBlock, _to, _toBlock, embed, event', eventFilter, forkWeb3, throwWeb3, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Api as Api
-import Network.Ethereum.Web3.Solidity.Sizes (s256)
-import Partial.Unsafe (unsafeCrashWith)
+import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Test.Spec (SpecT, before, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
-import Contract.SimpleStorage as SimpleStorage
 import Web3Spec.Live.Code.SimpleStorage as SimpleStorageCode
-import Web3Spec.Live.Utils (assertWeb3, go, Logger, defaultTestTxOptions, ContractConfig, deployContract, mkUIntN, pollTransactionReceipt, joinWeb3Fork, hangOutTillBlock)
+import Web3Spec.Live.ContractUtils (go, Logger, ContractConfig, deployContract, joinWeb3Fork, hangOutTillBlock)
+import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, pollTransactionReceipt)
 
 spec :: Provider -> SpecT Aff Unit Aff Unit
 spec p =
@@ -295,7 +296,7 @@ mkUIntsGen uintV n =
 
       res = firstAvailable .. (nextVal - 1)
     AVar.put nextVal uintV
-    pure $ map (mkUIntN s256) res
+    pure $ map (\x -> unsafePartial $ fromJust $ uIntNFromBigNumber (Proxy @256) $ embed x) res
 
 aMax :: forall a. Ord a => Array a -> a
 aMax as = case head $ sortWith Down as of

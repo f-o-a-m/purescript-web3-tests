@@ -1,7 +1,7 @@
 module Web3Spec.Live.Code.SimpleErrorTest where
 
 import Network.Ethereum.Web3 (HexString)
-import Web3Spec.Live.Utils (mkHexString')
+import Web3Spec.Live.ContractUtils (mkHexString')
 
 deployBytecode :: HexString
 deployBytecode =

@@ -1,6 +1,8 @@
 module Web3Spec.Live.PayableTestSpec (spec) where
 
 import Prelude
+
+import Contract.PayableTest as PayableTest
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
@@ -10,9 +12,9 @@ import Network.Ethereum.Web3.Api as Api
 import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
-import Contract.PayableTest as PayableTest
 import Web3Spec.Live.Code.PayableTest as PayableTestCode
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, deployContract, takeEvent)
+import Web3Spec.Live.ContractUtils (deployContract, takeEvent)
+import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
 
 spec :: Provider -> SpecT Aff Unit Aff Unit
 spec provider =

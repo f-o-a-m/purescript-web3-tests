@@ -1,19 +1,23 @@
 module Web3Spec.Live.MockERC20Spec where
 
 import Prelude
+
+import Contract.MockERC20 as MockERC20
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
 import Effect.Class.Console as C
 import Network.Ethereum.Web3 (Provider, _from, _to, _value, mkValue, Value, Wei, _data)
 import Network.Ethereum.Web3.Api as Api
-import Network.Ethereum.Web3.Solidity.Sizes (s256)
+import Network.Ethereum.Web3.Solidity.UInt as UIntN
+import Test.QuickCheck.Gen (randomSampleOne)
 import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
-import Contract.MockERC20 as MockERC20
 import Web3Spec.Live.Code.MockERC20 as MockERC20Code
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, deployContract, mkUIntN, takeEvent, nullAddress)
+import Web3Spec.Live.ContractUtils (deployContract, takeEvent)
+import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, nullAddress)
 
 spec :: Provider -> SpecT Aff Unit Aff Unit
 spec provider =
@@ -27,10 +31,9 @@ spec provider =
         )
     $ it "can make a transfer"
     $ \cfg -> do
+        amount <- liftEffect $ randomSampleOne (UIntN.generator (Proxy @256))
         let
           { contractAddress: mockERC20Address, userAddress } = cfg
-
-          amount = mkUIntN s256 1
 
           recipient = nullAddress
 

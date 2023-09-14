@@ -5,7 +5,8 @@ let upstream =
   with eth-core = ./purescript-eth-core/spago.dhall as Location
   with web3 = ./purescript-web3/spago.dhall as Location
   with web3-generator = ./purescript-web3-generator/spago.dhall as Location
-  with js-bigints = ../purescript-js-bigints/spago.dhall as Location
+  with js-bigints.repo = "https://github.com/martyall/purescript-js-bigints"
+  with js-bigints.version = "fix-fromStringAs"
 
 
 in  upstream
