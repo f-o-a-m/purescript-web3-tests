@@ -14,7 +14,7 @@ import Effect.Aff (Aff)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (liftAff)
 import Effect.Class.Console as C
-import Network.Ethereum.Web3 (BigNumber, BlockNumber, Change(..), EventAction(..), EventHandler, Provider, Value, Web3, Wei, _data, _from, _to, _value, embed, event, event', eventFilter, forkWeb3, mkValue, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (BigNumber, BlockNumber, Change(..), EventAction(..), EventHandler, Provider, Value, Web3, Wei, _data, _from, _to, _value, fromInt, event, event', eventFilter, forkWeb3, mkValue, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Api as Api
 import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, describe, it, beforeAll)
@@ -51,7 +51,7 @@ spec provider =
 
           nVals = length vals1 + length vals2
 
-          mkUIntN x = unsafePartial $ fromJust $ uIntNFromBigNumber (Proxy @256) $ embed x
+          mkUIntN x = unsafePartial $ fromJust $ uIntNFromBigNumber (Proxy @256) $ fromInt x
 
           fireE1 n = void $ assertWeb3 provider $ Multifilter.fireE1 txOpts { _value: mkUIntN n }
 

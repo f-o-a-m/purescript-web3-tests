@@ -17,7 +17,7 @@ import Effect.Aff (Aff, Fiber, error)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
-import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, Web3Error, _from, _fromBlock, _to, _toBlock, embed, event', eventFilter, forkWeb3, throwWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, Web3Error, _from, _fromBlock, _to, _toBlock, fromInt, event', eventFilter, forkWeb3, throwWeb3, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Api as Api
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Test.Spec (SpecT, before, describe, it, parallel)
@@ -98,7 +98,7 @@ spec' provider { logger } = do
               logger $ "Searching for values " <> show values
               now <- assertWeb3 provider Api.eth_blockNumber
               let
-                later = wrap $ unwrap now + embed 3
+                later = wrap $ unwrap now + fromInt 3
 
                 filter =
                   eventFilter (Proxy :: Proxy SimpleStorage.CountSet) simpleStorageAddress
@@ -122,10 +122,10 @@ spec' provider { logger } = do
                 nValues = length values
               now <- assertWeb3 provider Api.eth_blockNumber
               let
-                later = wrap $ unwrap now + embed 3
+                later = wrap $ unwrap now + fromInt 3
 
                 -- NOTE: This isn't that clean, but 2 blocks per set should be enough time
-                latest = wrap $ unwrap later + embed (2 * nValues)
+                latest = wrap $ unwrap later + fromInt (2 * nValues)
 
                 filter =
                   eventFilter (Proxy :: Proxy SimpleStorage.CountSet) simpleStorageAddress
@@ -219,11 +219,11 @@ monitorUntil provider logger filter p opts = do
     handler (SimpleStorage.CountSet { _count }) = do
       Change c <- ask
       chainHead <- lift Api.eth_blockNumber
-      when (un BlockNumber chainHead - un BlockNumber c.blockNumber < embed opts.trailBy)
+      when (un BlockNumber chainHead - un BlockNumber c.blockNumber < fromInt opts.trailBy)
         $ lift
         $ throwWeb3
         $ error "Exceded max trailBy"
-      when (un BlockNumber chainHead - un BlockNumber c.blockNumber == embed opts.trailBy) do
+      when (un BlockNumber chainHead - un BlockNumber c.blockNumber == fromInt opts.trailBy) do
         _ <- liftAff $ AVar.take reachedTargetTrailByV
         liftAff $ AVar.put true reachedTargetTrailByV
       foundSoFar <- liftAff $ AVar.take foundValuesV
@@ -296,7 +296,7 @@ mkUIntsGen uintV n =
 
       res = firstAvailable .. (nextVal - 1)
     AVar.put nextVal uintV
-    pure $ map (\x -> unsafePartial $ fromJust $ uIntNFromBigNumber (Proxy @256) $ embed x) res
+    pure $ map (\x -> unsafePartial $ fromJust $ uIntNFromBigNumber (Proxy @256) $ fromInt x) res
 
 aMax :: forall a. Ord a => Array a -> a
 aMax as = case head $ sortWith Down as of

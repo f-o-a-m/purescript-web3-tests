@@ -17,7 +17,7 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
 import Network.Ethereum.Core.BigNumber (decimal, fromStringAs)
 import Network.Ethereum.Core.Signatures (mkAddress)
-import Network.Ethereum.Web3 (class EventFilter, Address, BigNumber, BlockNumber, CallError, EventAction(..), HexString, Provider, TransactionOptions, TransactionReceipt(..), Web3, Web3Error, _from, _gas, defaultTransactionOptions, embed, event, eventFilter, forkWeb3', mkHexString)
+import Network.Ethereum.Web3 (class EventFilter, Address, BigNumber, BlockNumber, CallError, EventAction(..), HexString, Provider, TransactionOptions, TransactionReceipt(..), Web3, Web3Error, _from, _gas, defaultTransactionOptions, fromInt, event, eventFilter, forkWeb3', mkHexString)
 import Network.Ethereum.Web3.Api as Api
 import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Types (NoPay)
@@ -97,7 +97,7 @@ awaitNextBlock
 awaitNextBlock provider logger = do
   n <- assertWeb3 provider Api.eth_blockNumber
   let
-    next = wrap $ embed 1 + unwrap n
+    next = wrap $ fromInt 1 + unwrap n
   logger $ "Awaiting block number " <> show next
   hangOutTillBlock provider logger next
 
