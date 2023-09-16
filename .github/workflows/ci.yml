@@ -33,6 +33,5 @@ jobs:
           sleep 10
           npm install
           npm run build
-          ./compile-contracts.sh
-          npm run web3-generator
+          npm run chanterelle-build
           npm run test

@@ -1,39 +1,34 @@
 module Web3Spec.Live.MultifilterSpec (spec) where
 
 import Prelude
+
+import Chanterelle.Test (buildTestConfig)
+import Contract.Multifilter as Multifilter
 import Control.Monad.Reader (ask)
+import Control.Parallel (parSequence_, parTraverse_)
 import Data.Array (snoc, (..), length, sort)
 import Data.Bifunctor (rmap)
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
-import Control.Parallel (parSequence_, parTraverse_)
 import Effect.Aff (Aff)
-import Effect.Aff.Class (liftAff)
 import Effect.Aff.AVar as AVar
+import Effect.Aff.Class (liftAff)
 import Effect.Class.Console as C
-import Network.Ethereum.Web3.Api as Api
-import Network.Ethereum.Web3 (Provider, BlockNumber, EventHandler, Web3, event, event', BigNumber, forkWeb3, eventFilter, EventAction(..), Change(..), _data, _from, _to, _value, mkValue, Value, Wei)
+import Network.Ethereum.Web3 (BigNumber, BlockNumber, Change(..), EventAction(..), EventHandler, Provider, Web3, _from, _to, event, event', eventFilter, forkWeb3)
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Test.Spec (SpecT, describe, it, beforeAll)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Type.Proxy (Proxy(..))
-import Web3Spec.Live.Utils (deployContract, defaultTestTxOptions, mkUIntN, assertWeb3, joinWeb3Fork, awaitNextBlock)
-import Web3Spec.Live.Code.Multifilter as MultifilterCode
-import Contract.Multifilter as Multifilter
+import Web3Spec.Live.ContractConfig as ContractConfig
+import Web3Spec.Live.Utils (assertWeb3, awaitNextBlock, defaultTestTxOptions, deploy, joinWeb3Fork, mkUIntN, nodeUrl)
 
-spec :: Provider -> SpecT Aff Unit Aff Unit
-spec provider =
+spec :: SpecT Aff Unit Aff Unit
+spec =
   describe "Multifilter"
-    $ beforeAll
-        ( deployContract provider C.log "Multifilter"
-            $ \txOpts ->
-                Api.eth_sendTransaction $ txOpts # _data ?~ MultifilterCode.deployBytecode
-                  # _value
-                      ?~ (mkValue zero :: Value Wei)
-        )
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.multiFilterCfg)
     $ it "can receive multiple events in the correct order" \contractCfg -> do
         let
-          { contractAddress: multifilterAddress, userAddress } = contractCfg
+          { deployAddress: multifilterAddress, primaryAccount: userAddress, provider } = contractCfg
 
           txOpts =
             defaultTestTxOptions

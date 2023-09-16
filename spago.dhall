@@ -10,6 +10,7 @@
   , "tagged"
   , "web3"
   , "web3-generator"
+  , "chanterelle"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
