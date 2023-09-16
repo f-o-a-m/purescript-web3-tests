@@ -1,39 +1,41 @@
 module Web3Spec.Live.FilterSpec (spec) where
 
 import Prelude
+
+import Chanterelle.Test (buildTestConfig)
+import Contract.SimpleStorage as SimpleStorage
 import Control.Monad.Reader (ask)
 import Control.Monad.Trans.Class (lift)
 import Data.Array ((..), snoc, length, head, sortWith)
 import Data.Either (Either)
+import Data.Lens ((?~), (.~), (^.))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap, unwrap, un)
 import Data.Ord.Down (Down(..))
 import Data.Traversable (traverse_)
-import Data.Lens ((?~), (.~), (^.))
-import Effect.Aff (Aff, Fiber, error)
-import Effect.Class (liftEffect)
-import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Aff.AVar as AVar
 import Effect.AVar as EAVar
-import Network.Ethereum.Web3 (BlockNumber(..), throwWeb3, Filter, Web3Error, Change(..), _fromBlock, _toBlock, eventFilter, EventAction(..), forkWeb3, ChainCursor(..), Provider, UIntN, _from, _to, embed, Address, event')
+import Effect.Aff (Aff, Fiber, error)
+import Effect.Aff.AVar as AVar
+import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class (liftEffect)
+import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, Web3Error, _from, _fromBlock, _to, _toBlock, embed, event', eventFilter, forkWeb3, throwWeb3)
 import Network.Ethereum.Web3.Api as Api
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Partial.Unsafe (unsafeCrashWith)
 import Test.Spec (SpecT, before, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
-import Contract.SimpleStorage as SimpleStorage
-import Web3Spec.Live.Code.SimpleStorage as SimpleStorageCode
-import Web3Spec.Live.Utils (assertWeb3, go, Logger, defaultTestTxOptions, ContractConfig, deployContract, mkUIntN, pollTransactionReceipt, joinWeb3Fork, hangOutTillBlock)
+import Web3Spec.Live.ContractConfig as ContractConfig
+import Web3Spec.Live.Utils (Logger, assertWeb3, defaultTestTxOptions, deploy, go, hangOutTillBlock, joinWeb3Fork, mkUIntN, nodeUrl, pollTransactionReceipt)
 
-spec :: Provider -> SpecT Aff Unit Aff Unit
-spec p =
+spec :: SpecT Aff Unit Aff Unit
+spec =
   let
     env =
       { logger: \s -> ask >>= \logger -> liftAff $ logger s
       }
   in
-    go $ spec' p env
+    go $ spec' env
 
 type FilterEnv m =
   { logger :: String -> m Unit
@@ -50,19 +52,17 @@ Case [Future, Future] : The fitler starts in the future and ends at a later time
 spec'
   :: forall m
    . MonadAff m
-  => Provider
-  -> FilterEnv m
+  => FilterEnv m
   -> SpecT m Unit Aff Unit
-spec' provider { logger } = do
+spec' { logger } = do
   uIntV <- liftEffect $ EAVar.new 1
-  let
-    gen = mkUIntsGen uIntV
+  let gen = mkUIntsGen uIntV
   describe "Filters"
     $ parallel do
-        before (deployUniqueSimpleStorage provider logger gen)
+        before (deployUniqueSimpleStorage nodeUrl logger gen)
           $ it "Case [Past, Past]" \simpleStorageCfg -> do
               let
-                { simpleStorageAddress, setter, uIntsGen } = simpleStorageCfg
+                { simpleStorageAddress, setter, uIntsGen, provider } = simpleStorageCfg
 
                 filter = eventFilter (Proxy :: Proxy SimpleStorage.CountSet) simpleStorageAddress
               values <- uIntsGen 3
@@ -83,16 +83,16 @@ spec' provider { logger } = do
               { foundValuesV } <- joinWeb3Fork fiber'
               foundValues <- liftAff $ AVar.take foundValuesV
               liftAff $ foundValues `shouldEqual` values
-        before (deployUniqueSimpleStorage provider logger gen)
+        before (deployUniqueSimpleStorage nodeUrl logger gen)
           $ do
-              it "Case [Past, ∞] No Trail" \simpleStorageCfg -> do
+              it "Case [Past, ∞] No Trail" \simpleStorageCfg@{ provider } -> do
                 fromPastToFutureTrailingBy simpleStorageCfg provider logger defaultFilterOpts
-              it "Case [Past, ∞] With Trail" \simpleStorageCfg -> do
+              it "Case [Past, ∞] With Trail" \simpleStorageCfg@{ provider } -> do
                 fromPastToFutureTrailingBy simpleStorageCfg provider logger { trailBy: 3, windowSize: 2 }
-        before (deployUniqueSimpleStorage provider logger gen)
+        before (deployUniqueSimpleStorage nodeUrl logger gen)
           $ it "Case [Future, ∞]" \simpleStorageCfg -> do
               let
-                { simpleStorageAddress, setter, uIntsGen } = simpleStorageCfg
+                { simpleStorageAddress, setter, uIntsGen, provider } = simpleStorageCfg
               values <- uIntsGen 3
               logger $ "Searching for values " <> show values
               now <- assertWeb3 provider Api.eth_blockNumber
@@ -111,10 +111,10 @@ spec' provider { logger } = do
               { foundValuesV } <- joinWeb3Fork fiber
               foundValues <- liftAff $ AVar.take foundValuesV
               liftAff $ foundValues `shouldEqual` values
-        before (deployUniqueSimpleStorage provider logger gen)
+        before (deployUniqueSimpleStorage nodeUrl logger gen)
           $ it "Case [Future, Future]" \simpleStorageCfg -> do
               let
-                { simpleStorageAddress, setter, uIntsGen } = simpleStorageCfg
+                { simpleStorageAddress, setter, uIntsGen, provider } = simpleStorageCfg
               values <- uIntsGen 3
               logger $ "Searching for values " <> show values
               let
@@ -243,43 +243,34 @@ type SimpleStorageCfg m =
   { simpleStorageAddress :: Address
   , setter :: UIntN 256 -> m Unit
   , uIntsGen :: Int -> m (Array (UIntN 256))
+  , provider :: Provider
   }
 
 deployUniqueSimpleStorage
   :: forall m
    . MonadAff m
-  => Provider
+  => String
   -> Logger m
   -> (Int -> m (Array (UIntN 256)))
   -> m (SimpleStorageCfg m)
-deployUniqueSimpleStorage provider logger uIntsGen = do
-  contractConfig <-
-    deployContract provider logger "SimpleStorage"
-      $ \txOpts ->
-          SimpleStorage.constructor txOpts SimpleStorageCode.deployBytecode
-  pure
-    { simpleStorageAddress: contractConfig.contractAddress
-    , setter: mkSetter contractConfig provider logger
-    , uIntsGen
-    }
+deployUniqueSimpleStorage nodeUrl logger uIntsGen = liftAff $ do
+  { deployAddress, provider, primaryAccount } <- buildTestConfig nodeUrl 60 $ deploy ContractConfig.simpleStorageCfg
 
-mkSetter
-  :: forall m
-   . MonadAff m
-  => ContractConfig
-  -> Provider
-  -> Logger m
-  -> UIntN 256
-  -> m Unit
-mkSetter { contractAddress, userAddress } provider logger _count = do
   let
-    txOptions =
-      defaultTestTxOptions # _from ?~ userAddress
-        # _to
-            ?~ contractAddress
-  logger $ "Setting count to " <> show _count
-  txHash <- assertWeb3 provider $ SimpleStorage.setCount txOptions { _count }
-  pollTransactionReceipt provider txHash mempty
+    setter _count = do
+      let
+        txOptions =
+          defaultTestTxOptions # _from ?~ primaryAccount
+            # _to ?~ deployAddress
+      logger $ "Setting count to " <> show _count
+      txHash <- assertWeb3 provider $ SimpleStorage.setCount txOptions { _count }
+      pollTransactionReceipt provider txHash mempty
+  pure
+    { simpleStorageAddress: deployAddress
+    , setter
+    , uIntsGen
+    , provider
+    }
 
 mkUIntsGen
   :: forall m

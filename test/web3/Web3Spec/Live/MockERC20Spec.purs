@@ -1,34 +1,28 @@
 module Web3Spec.Live.MockERC20Spec where
 
 import Prelude
+
+import Chanterelle.Test (buildTestConfig)
+import Contract.MockERC20 as MockERC20
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
-import Effect.Class.Console as C
-import Network.Ethereum.Web3 (Provider, _from, _to, _value, mkValue, Value, Wei, _data)
-import Network.Ethereum.Web3.Api as Api
+import Network.Ethereum.Web3 (_from, _to)
 import Network.Ethereum.Web3.Solidity.Sizes (s256)
 import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
-import Contract.MockERC20 as MockERC20
-import Web3Spec.Live.Code.MockERC20 as MockERC20Code
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, deployContract, mkUIntN, takeEvent, nullAddress)
+import Web3Spec.Live.ContractConfig as ContractConfig
+import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, deploy, mkUIntN, nodeUrl, nullAddress, takeEvent)
 
-spec :: Provider -> SpecT Aff Unit Aff Unit
-spec provider =
+spec :: SpecT Aff Unit Aff Unit
+spec =
   describe "MockERC20"
-    $ beforeAll
-        ( deployContract provider C.log "MockERC20"
-            $ \txOpts ->
-                Api.eth_sendTransaction $ txOpts # _data ?~ MockERC20Code.deployBytecode
-                  # _value
-                      ?~ (mkValue zero :: Value Wei)
-        )
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.mockERC20Cfg)
     $ it "can make a transfer"
     $ \cfg -> do
         let
-          { contractAddress: mockERC20Address, userAddress } = cfg
+          { deployAddress: mockERC20Address, primaryAccount: userAddress, provider } = cfg
 
           amount = mkUIntN s256 1
 

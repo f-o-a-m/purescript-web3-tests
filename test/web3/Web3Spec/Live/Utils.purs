@@ -1,28 +1,30 @@
 module Web3Spec.Live.Utils where
 
 import Prelude
-import Control.Monad.Reader (ReaderT, runReaderT)
-import Data.Array ((!!))
+
+import Chanterelle.Internal.Deploy (deployContract)
+import Chanterelle.Internal.Types (ContractConfig, DeployConfig(..), DeployM)
+import Control.Monad.Reader (ReaderT, runReaderT, ask)
+import Data.Array.NonEmpty as NAE
 import Data.ByteString as BS
 import Data.Either (Either(..))
 import Data.Lens ((?~))
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (fromJust)
 import Data.Newtype (wrap, unwrap)
 import Data.Traversable (intercalate)
-import Data.Array.NonEmpty as NAE
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff, Milliseconds(..), Fiber, joinFiber, delay)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
-import Test.Spec (ComputationType(..), SpecT, hoistSpec)
 import Network.Ethereum.Core.BigNumber (decimal, parseBigNumber)
 import Network.Ethereum.Core.Signatures (mkAddress)
-import Network.Ethereum.Web3 (class EventFilter, class KnownSize, Address, Web3Error, BigNumber, BlockNumber, BytesN, CallError, EventAction(..), HexString, Provider, TransactionOptions, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _from, _gas, defaultTransactionOptions, event, embed, eventFilter, forkWeb3', fromByteString, intNFromBigNumber, mkHexString, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (Address, _from, class EventFilter, class KnownSize, Web3Error, BigNumber, BlockNumber, BytesN, CallError, EventAction(..), HexString, Provider, TransactionOptions, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _gas, defaultTransactionOptions, event, embed, eventFilter, forkWeb3', fromByteString, intNFromBigNumber, mkHexString, runWeb3, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Api as Api
 import Network.Ethereum.Web3.Solidity (class DecodeEvent, IntN)
 import Network.Ethereum.Web3.Types (NoPay)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
+import Test.Spec (ComputationType(..), SpecT, hoistSpec)
 import Type.Proxy (Proxy)
 
 type Logger m = String -> m Unit
@@ -131,40 +133,6 @@ awaitNextBlock provider logger = do
   logger $ "Awaiting block number " <> show next
   hangOutTillBlock provider logger next
 
-type ContractConfig =
-  { contractAddress :: Address
-  , userAddress :: Address
-  }
-
-deployContract
-  :: forall m
-   . MonadAff m
-  => Provider
-  -> Logger m
-  -> String
-  -> (TransactionOptions NoPay -> Web3 HexString)
-  -> m ContractConfig
-deployContract p logger contractName deploymentTx = do
-  userAddress <-
-    assertWeb3 p
-      $ do
-          accounts <- Api.eth_getAccounts
-          pure $ unsafePartial fromJust $ accounts !! 0
-  txHash <-
-    assertWeb3 p do
-      let
-        txOpts = defaultTestTxOptions # _from ?~ userAddress
-      txHash <- deploymentTx txOpts
-      pure txHash
-  logger $ "Submitted " <> contractName <> " deployment : " <> show txHash
-  let
-    k (TransactionReceipt rec) = case rec.contractAddress of
-      Nothing -> unsafeCrashWith "Contract deployment missing contractAddress in receipt"
-      Just addr -> pure addr
-  contractAddress <- pollTransactionReceipt p txHash k
-  logger $ contractName <> " successfully deployed to " <> show contractAddress
-  pure $ { contractAddress, userAddress }
-
 joinWeb3Fork
   :: forall a m
    . MonadAff m
@@ -214,3 +182,21 @@ nullAddress = unsafePartial $ fromJust $ mkAddress =<< mkHexString "000000000000
 
 bigGasLimit :: BigNumber
 bigGasLimit = unsafePartial fromJust $ parseBigNumber decimal "4712388"
+
+deploy :: forall a. ContractConfig a -> DeployM { deployAddress :: Address, primaryAccount :: Address }
+deploy contractConfig = do
+  DeployConfig { primaryAccount } <- ask
+  let txOpts = defaultTransactionOptions # _from ?~ primaryAccount
+  { deployAddress } <- deployContract txOpts contractConfig
+  pure { deployAddress, primaryAccount }
+
+type DeployResult = { deployAddress :: Address }
+
+type DeploySpecConfig r =
+  { provider :: Provider
+  , primaryAccount :: Address
+  | r
+  }
+
+nodeUrl :: String
+nodeUrl = "http://localhost:8545"

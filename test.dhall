@@ -24,6 +24,7 @@
   , "tuples"
   , "spec"
   , "web3"
+  , "chanterelle"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/Contract/**/*.purs", "test/**/*.purs" ]
