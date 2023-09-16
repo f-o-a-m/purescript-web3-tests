@@ -190,13 +190,5 @@ deploy contractConfig = do
   { deployAddress } <- deployContract txOpts contractConfig
   pure { deployAddress, primaryAccount }
 
-type DeployResult = { deployAddress :: Address }
-
-type DeploySpecConfig r =
-  { provider :: Provider
-  , primaryAccount :: Address
-  | r
-  }
-
 nodeUrl :: String
 nodeUrl = "http://localhost:8545"
