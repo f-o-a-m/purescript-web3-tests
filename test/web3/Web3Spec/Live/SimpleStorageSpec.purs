@@ -2,37 +2,33 @@ module Web3Spec.Live.SimpleStorageSpec (spec) where
 
 import Prelude
 
+import Chanterelle.Test (buildTestConfig)
 import Contract.SimpleStorage as SimpleStorage
 import Data.Either (isRight)
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
-import Effect.Class.Console as C
-import Network.Ethereum.Web3 (ChainCursor(..), Provider, _from, _to, runWeb3)
+import Network.Ethereum.Web3 (ChainCursor(..), _from, _to, runWeb3)
 import Network.Ethereum.Web3.Api as Api
 import Network.Ethereum.Web3.Solidity.UInt as UIntN
 import Test.QuickCheck.Gen (randomSampleOne)
 import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
-import Web3Spec.Live.Code.SimpleStorage as SimpleStorageCode
-import Web3Spec.Live.ContractUtils (deployContract, takeEvent)
+import Web3Spec.Live.ContractConfig as ContractConfig
+import Web3Spec.Live.ContractUtils (deploy, nodeUrl, takeEvent)
 import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
 
-spec :: Provider -> SpecT Aff Unit Aff Unit
-spec provider =
+spec :: SpecT Aff Unit Aff Unit
+spec =
   describe "Simple Storage"
-    $ beforeAll
-        ( deployContract provider C.log "SimpleStorage"
-            $ \txOpts ->
-                SimpleStorage.constructor txOpts SimpleStorageCode.deployBytecode
-        )
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.simpleStorageCfg)
     $ it "Can get and set a simple UInt with events"
     $ \simpleStorageCfg -> do
         newCount <- liftEffect $ randomSampleOne (UIntN.generator (Proxy @256))
         let
-          { contractAddress: simpleStorageAddress, userAddress } = simpleStorageCfg
+          { deployAddress: simpleStorageAddress, primaryAccount: userAddress, provider } = simpleStorageCfg
 
           txOpts =
             defaultTestTxOptions # _from ?~ userAddress

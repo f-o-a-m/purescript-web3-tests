@@ -2,14 +2,13 @@ module Web3Spec.Live.ComplexStorageSpec (spec) where
 
 import Prelude
 
+import Chanterelle.Test (buildTestConfig)
 import Contract.ComplexStorage as ComplexStorage
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
-import Effect.Class.Console as C
-import Network.Ethereum.Web3 (Provider, Value, Wei, _data, _from, _to, _value, mkValue)
-import Network.Ethereum.Web3.Api as Api
+import Network.Ethereum.Web3 (_from, _to)
 import Network.Ethereum.Web3.Solidity.Bytes as BytesN
 import Network.Ethereum.Web3.Solidity.Int as IntN
 import Network.Ethereum.Web3.Solidity.UInt as UIntN
@@ -20,22 +19,16 @@ import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Encoding.ContainersSpec (BMPString(..))
-import Web3Spec.Live.Code.ComplexStorage as ComplexStorageCode
-import Web3Spec.Live.ContractUtils (deployContract, takeEvent)
+import Web3Spec.Live.ContractConfig as ContractConfig
+import Web3Spec.Live.ContractUtils (deploy, nodeUrl, takeEvent)
 import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
 
-spec :: Provider -> SpecT Aff Unit Aff Unit
-spec provider =
+spec :: SpecT Aff Unit Aff Unit
+spec =
   describe "Complex Storage"
-    $ beforeAll
-        ( deployContract provider C.log "ComplexStorage"
-            $ \txOpts ->
-                Api.eth_sendTransaction $ txOpts # _data ?~ ComplexStorageCode.deployBytecode
-                  # _value
-                      ?~ (mkValue zero :: Value Wei)
-        )
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.complexStorageCfg)
     $ it "Can encode and decode complex objects to / from a smart contract"
-    $ \complexStorageCfg -> do
+    $ \{ deployAddress: complexStorageAddress, primaryAccount: userAddress, provider } -> do
         arg <- liftEffect $ do
           uint <- randomSampleOne $ UIntN.generator $ Proxy @256
           int <- randomSampleOne $ IntN.generator $ Proxy @256
@@ -58,12 +51,10 @@ spec provider =
             , _bytes2VectorListVal: bytes2s
             }
         let
-          { contractAddress: complexStorageAddress, userAddress } = complexStorageCfg
-
           txOptions =
-            defaultTestTxOptions # _from ?~ userAddress
-              # _to
-                  ?~ complexStorageAddress
+            defaultTestTxOptions
+              # _from ?~ userAddress
+              # _to ?~ complexStorageAddress
 
           setValsAction = ComplexStorage.setValues txOptions arg
         pure unit

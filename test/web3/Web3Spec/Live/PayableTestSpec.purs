@@ -2,35 +2,28 @@ module Web3Spec.Live.PayableTestSpec (spec) where
 
 import Prelude
 
+import Chanterelle.Test (buildTestConfig)
 import Contract.PayableTest as PayableTest
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
-import Effect.Class.Console as C
-import Network.Ethereum.Web3 (Provider, _from, _to, _value, mkValue, Value, Wei, Ether, Shannon, _data, unUIntN, convert)
-import Network.Ethereum.Web3.Api as Api
+import Network.Ethereum.Web3 (Ether, Shannon, Value, _from, _to, _value, convert, mkValue, unUIntN)
 import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
-import Web3Spec.Live.Code.PayableTest as PayableTestCode
-import Web3Spec.Live.ContractUtils (deployContract, takeEvent)
+import Web3Spec.Live.ContractConfig as ContractConfig
+import Web3Spec.Live.ContractUtils (deploy, nodeUrl, takeEvent)
 import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
 
-spec :: Provider -> SpecT Aff Unit Aff Unit
-spec provider =
+spec :: SpecT Aff Unit Aff Unit
+spec =
   describe "PayableTest"
-    $ beforeAll
-        ( deployContract provider C.log "PayableTest"
-            $ \txOpts ->
-                Api.eth_sendTransaction $ txOpts # _data ?~ PayableTestCode.deployBytecode
-                  # _value
-                      ?~ (mkValue zero :: Value Wei)
-        )
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.payableCfg)
     $ describe "PayableTest" do
         it "can send the right amount of Ether"
           $ \cfg -> do
               let
-                { contractAddress: payableTestAddress, userAddress } = cfg
+                { deployAddress: payableTestAddress, primaryAccount: userAddress, provider } = cfg
 
                 txOptions =
                   defaultTestTxOptions # _to ?~ payableTestAddress
@@ -47,7 +40,7 @@ spec provider =
         it "can send the right amount of Shannon"
           $ \cfg -> do
               let
-                { contractAddress: payableTestAddress, userAddress } = cfg
+                { deployAddress: payableTestAddress, primaryAccount: userAddress, provider } = cfg
 
                 txOptions =
                   defaultTestTxOptions # _to ?~ payableTestAddress

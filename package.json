@@ -3,7 +3,7 @@
   "scripts": {
     "postinstall": "spago install",
     "build": "spago build",
-    "web3-generator": "spago run --node-args=\"--abis build --module Contract\"",
+    "chanterelle-build": "spago run -m ChanterelleMain --node-args=\"build\"",
     "test": "spago -x test.dhall test",
     "tidy": "purs-tidy format-in-place \"src/**/*.purs\" \"test/**/*.purs\"",
     "tidy-check": "purs-tidy check \"src/**/*.purs\" \"test/**/*.purs\""

@@ -2,6 +2,7 @@ module Web3Spec.Live.MultifilterSpec (spec) where
 
 import Prelude
 
+import Chanterelle.Test (buildTestConfig)
 import Contract.Multifilter as Multifilter
 import Control.Monad.Reader (ask)
 import Control.Parallel (parSequence_, parTraverse_)
@@ -14,29 +15,22 @@ import Effect.Aff (Aff)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (liftAff)
 import Effect.Class.Console as C
-import Network.Ethereum.Web3 (BigNumber, BlockNumber, Change(..), EventAction(..), EventHandler, Provider, Value, Web3, Wei, _data, _from, _to, _value, fromInt, event, event', eventFilter, forkWeb3, mkValue, uIntNFromBigNumber)
-import Network.Ethereum.Web3.Api as Api
+import Network.Ethereum.Web3 (BigNumber, BlockNumber, Change(..), EventAction(..), EventHandler, Provider, Web3, _from, _to, event, event', eventFilter, forkWeb3, fromInt, uIntNFromBigNumber)
 import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, describe, it, beforeAll)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Type.Proxy (Proxy(..))
-import Web3Spec.Live.Code.Multifilter as MultifilterCode
-import Web3Spec.Live.ContractUtils (awaitNextBlock, deployContract)
+import Web3Spec.Live.ContractConfig as ContractConfig
+import Web3Spec.Live.ContractUtils (awaitNextBlock, deploy, nodeUrl)
 import Web3Spec.Live.Utils (defaultTestTxOptions, assertWeb3, joinWeb3Fork)
 
-spec :: Provider -> SpecT Aff Unit Aff Unit
-spec provider =
+spec :: SpecT Aff Unit Aff Unit
+spec =
   describe "Multifilter"
-    $ beforeAll
-        ( deployContract provider C.log "Multifilter"
-            $ \txOpts ->
-                Api.eth_sendTransaction $ txOpts # _data ?~ MultifilterCode.deployBytecode
-                  # _value
-                      ?~ (mkValue zero :: Value Wei)
-        )
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.multiFilterCfg)
     $ it "can receive multiple events in the correct order" \contractCfg -> do
         let
-          { contractAddress: multifilterAddress, userAddress } = contractCfg
+          { deployAddress: multifilterAddress, primaryAccount: userAddress, provider } = contractCfg
 
           txOpts =
             defaultTestTxOptions

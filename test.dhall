@@ -28,6 +28,7 @@
   , "transformers"
   , "tuples"
   , "web3"
+  , "chanterelle"
   ]
 , packages = ./packages.dhall
 , sources =

@@ -2,12 +2,13 @@ module Web3Spec.Live.ContractUtils where
 
 import Prelude
 
-import Control.Monad.Reader (ReaderT, runReaderT)
-import Data.Array ((!!))
+import Chanterelle.Internal.Deploy (deployContract)
+import Chanterelle.Internal.Types (ContractConfig, DeployConfig(..), DeployM)
+import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Data.Array.NonEmpty as NAE
 import Data.Either (Either(..))
 import Data.Lens ((?~))
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (fromJust)
 import Data.Newtype (wrap, unwrap)
 import Data.Traversable (intercalate)
 import Data.Tuple (Tuple(..))
@@ -17,14 +18,14 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
 import Network.Ethereum.Core.BigNumber (decimal, fromStringAs)
 import Network.Ethereum.Core.Signatures (mkAddress)
-import Network.Ethereum.Web3 (class EventFilter, Address, BigNumber, BlockNumber, CallError, EventAction(..), HexString, Provider, TransactionOptions, TransactionReceipt(..), Web3, Web3Error, _from, _gas, defaultTransactionOptions, fromInt, event, eventFilter, forkWeb3', mkHexString)
+import Network.Ethereum.Web3 (class EventFilter, Address, BigNumber, BlockNumber, CallError, EventAction(..), HexString, Provider, TransactionOptions, Web3, Web3Error, _from, _gas, defaultTransactionOptions, event, eventFilter, forkWeb3', mkHexString)
 import Network.Ethereum.Web3.Api as Api
 import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Types (NoPay)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Test.Spec (ComputationType(..), SpecT, hoistSpec)
 import Type.Proxy (Proxy)
-import Web3Spec.Live.Utils (assertWeb3, pollTransactionReceipt)
+import Web3Spec.Live.Utils (assertWeb3)
 
 type Logger m = String -> m Unit
 
@@ -97,43 +98,9 @@ awaitNextBlock
 awaitNextBlock provider logger = do
   n <- assertWeb3 provider Api.eth_blockNumber
   let
-    next = wrap $ fromInt 1 + unwrap n
+    next = wrap $ one + unwrap n
   logger $ "Awaiting block number " <> show next
   hangOutTillBlock provider logger next
-
-type ContractConfig =
-  { contractAddress :: Address
-  , userAddress :: Address
-  }
-
-deployContract
-  :: forall m
-   . MonadAff m
-  => Provider
-  -> Logger m
-  -> String
-  -> (TransactionOptions NoPay -> Web3 HexString)
-  -> m ContractConfig
-deployContract p logger contractName deploymentTx = do
-  userAddress <-
-    assertWeb3 p
-      $ do
-          accounts <- Api.eth_getAccounts
-          pure $ unsafePartial fromJust $ accounts !! 0
-  txHash <-
-    assertWeb3 p do
-      let
-        txOpts = defaultTestTxOptions # _from ?~ userAddress
-      txHash <- deploymentTx txOpts
-      pure txHash
-  logger $ "Submitted " <> contractName <> " deployment : " <> show txHash
-  let
-    k (TransactionReceipt rec) = case rec.contractAddress of
-      Nothing -> unsafeCrashWith "Contract deployment missing contractAddress in receipt"
-      Just addr -> pure addr
-  contractAddress <- pollTransactionReceipt p txHash k
-  logger $ contractName <> " successfully deployed to " <> show contractAddress
-  pure $ { contractAddress, userAddress }
 
 joinWeb3Fork
   :: forall a m
@@ -160,3 +127,13 @@ nullAddress = unsafePartial $ fromJust $ mkAddress =<< mkHexString "000000000000
 
 bigGasLimit :: BigNumber
 bigGasLimit = unsafePartial fromJust $ fromStringAs decimal "4712388"
+
+deploy :: forall a. ContractConfig a -> DeployM { deployAddress :: Address, primaryAccount :: Address }
+deploy contractConfig = do
+  DeployConfig { primaryAccount } <- ask
+  let txOpts = defaultTransactionOptions # _from ?~ primaryAccount
+  { deployAddress } <- deployContract txOpts contractConfig
+  pure { deployAddress, primaryAccount }
+
+nodeUrl :: String
+nodeUrl = "http://localhost:8545"
