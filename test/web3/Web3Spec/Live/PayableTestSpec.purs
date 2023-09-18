@@ -12,7 +12,8 @@ import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, deploy, nodeUrl, takeEvent)
+import Web3Spec.Live.ContractUtils (deploy, nodeUrl, takeEvent)
+import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =

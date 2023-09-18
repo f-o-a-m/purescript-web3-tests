@@ -6,13 +6,16 @@ import Chanterelle.Test (buildTestConfig)
 import Contract.SimpleErrorTest as SimpleErrorTest
 import Data.Either (Either(..), isLeft)
 import Data.Lens ((?~))
+import Data.Maybe (fromJust)
 import Effect.Aff (Aff)
-import Network.Ethereum.Web3 (ChainCursor(..), _from, _to)
-import Network.Ethereum.Web3.Solidity.Sizes (s256)
+import Network.Ethereum.Web3 (ChainCursor(..), _from, _to, fromInt, uIntNFromBigNumber)
+import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
+import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, deploy, mkUIntN, nodeUrl)
+import Web3Spec.Live.ContractUtils (deploy, nodeUrl)
+import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
@@ -29,7 +32,7 @@ spec =
                     # _from
                         ?~ userAddress
 
-                n = mkUIntN s256 1
+                n = unsafePartial $ fromJust $ uIntNFromBigNumber (Proxy @256) $ fromInt 1
               resp1 <- assertWeb3 provider $ SimpleErrorTest.names txOptions Latest n
               resp1 `shouldSatisfy` isLeft
               resp2 <- assertWeb3 provider $ SimpleErrorTest.testBool txOptions Latest { _arg: true }

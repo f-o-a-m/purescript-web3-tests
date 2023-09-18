@@ -1,12 +1,11 @@
-module Web3Spec.Live.Utils where
+module Web3Spec.Live.ContractUtils where
 
 import Prelude
 
 import Chanterelle.Internal.Deploy (deployContract)
 import Chanterelle.Internal.Types (ContractConfig, DeployConfig(..), DeployM)
-import Control.Monad.Reader (ReaderT, runReaderT, ask)
+import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Data.Array.NonEmpty as NAE
-import Data.ByteString as BS
 import Data.Either (Either(..))
 import Data.Lens ((?~))
 import Data.Maybe (fromJust)
@@ -17,15 +16,16 @@ import Effect.Aff (Aff, Milliseconds(..), Fiber, joinFiber, delay)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class.Console as C
-import Network.Ethereum.Core.BigNumber (decimal, parseBigNumber)
+import Network.Ethereum.Core.BigNumber (decimal, fromStringAs)
 import Network.Ethereum.Core.Signatures (mkAddress)
-import Network.Ethereum.Web3 (Address, _from, class EventFilter, class KnownSize, Web3Error, BigNumber, BlockNumber, BytesN, CallError, EventAction(..), HexString, Provider, TransactionOptions, TransactionReceipt(..), TransactionStatus(..), UIntN, Web3, _gas, defaultTransactionOptions, event, embed, eventFilter, forkWeb3', fromByteString, intNFromBigNumber, mkHexString, runWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (class EventFilter, Address, BigNumber, BlockNumber, CallError, EventAction(..), HexString, Provider, TransactionOptions, Web3, Web3Error, _from, _gas, defaultTransactionOptions, event, eventFilter, forkWeb3', mkHexString)
 import Network.Ethereum.Web3.Api as Api
-import Network.Ethereum.Web3.Solidity (class DecodeEvent, IntN)
+import Network.Ethereum.Web3.Solidity (class DecodeEvent)
 import Network.Ethereum.Web3.Types (NoPay)
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Test.Spec (ComputationType(..), SpecT, hoistSpec)
 import Type.Proxy (Proxy)
+import Web3Spec.Live.Utils (assertWeb3)
 
 type Logger m = String -> m Unit
 
@@ -62,19 +62,6 @@ takeEvent prx addrs web3Action = do
   event <- liftAff $ AVar.take var
   pure $ Tuple efRes event
 
--- | Assert the `Web3` action's result, crash the program if it doesn't succeed.
-assertWeb3
-  :: forall m a
-   . MonadAff m
-  => Provider
-  -> Web3 a
-  -> m a
-assertWeb3 provider a =
-  liftAff $ runWeb3 provider a
-    <#> case _ of
-      Right x -> x
-      Left err -> unsafeCrashWith $ "expected Right in `assertWeb3`, got error" <> show err
-
 assertStorageCall
   :: forall m a
    . MonadAff m
@@ -87,24 +74,6 @@ assertStorageCall p f =
     case eRes of
       Right x -> pure x
       Left err -> unsafeCrashWith $ "expected Right in `assertStorageCall`, got error" <> show err
-
-pollTransactionReceipt
-  :: forall m a
-   . MonadAff m
-  => Provider
-  -> HexString
-  -> (TransactionReceipt -> Aff a)
-  -> m a
-pollTransactionReceipt provider txHash k =
-  liftAff do
-    eRes <- runWeb3 provider $ Api.eth_getTransactionReceipt txHash
-    case eRes of
-      Left _ -> do
-        delay (Milliseconds 2000.0)
-        pollTransactionReceipt provider txHash k
-      Right receipt@(TransactionReceipt res) -> case res.status of
-        Succeeded -> k receipt
-        Failed -> unsafeCrashWith $ "Transaction failed : " <> show txHash
 
 hangOutTillBlock
   :: forall m
@@ -129,7 +98,7 @@ awaitNextBlock
 awaitNextBlock provider logger = do
   n <- assertWeb3 provider Api.eth_blockNumber
   let
-    next = wrap $ embed 1 + unwrap n
+    next = wrap $ one + unwrap n
   logger $ "Awaiting block number " <> show next
   hangOutTillBlock provider logger next
 
@@ -150,30 +119,6 @@ mkHexString'
   -> HexString
 mkHexString' hx = unsafePartial fromJust $ mkHexString hx
 
-mkUIntN
-  :: forall n
-   . KnownSize n
-  => Proxy n
-  -> Int
-  -> UIntN n
-mkUIntN p n = unsafePartial fromJust $ uIntNFromBigNumber p $ embed n
-
-mkIntN
-  :: forall n
-   . KnownSize n
-  => Proxy n
-  -> Int
-  -> IntN n
-mkIntN p n = unsafePartial fromJust $ intNFromBigNumber p $ embed n
-
-mkBytesN
-  :: forall n
-   . KnownSize n
-  => Proxy n
-  -> String
-  -> BytesN n
-mkBytesN p s = unsafePartial fromJust $ fromByteString p =<< flip BS.fromString BS.Hex s
-
 defaultTestTxOptions :: TransactionOptions NoPay
 defaultTestTxOptions = defaultTransactionOptions # _gas ?~ bigGasLimit
 
@@ -181,7 +126,7 @@ nullAddress :: Address
 nullAddress = unsafePartial $ fromJust $ mkAddress =<< mkHexString "0000000000000000000000000000000000000000"
 
 bigGasLimit :: BigNumber
-bigGasLimit = unsafePartial fromJust $ parseBigNumber decimal "4712388"
+bigGasLimit = unsafePartial fromJust $ fromStringAs decimal "4712388"
 
 deploy :: forall a. ContractConfig a -> DeployM { deployAddress :: Address, primaryAccount :: Address }
 deploy contractConfig = do

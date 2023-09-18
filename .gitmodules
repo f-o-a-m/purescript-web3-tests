@@ -10,3 +10,6 @@
 [submodule "chanterelle"]
 	path = chanterelle
 	url = https://github.com/f-o-a-m/chanterelle
+[submodule "purescript-solc"]
+	path = purescript-solc
+	url = git@github.com:f-o-a-m/purescript-solc.git

@@ -9,18 +9,20 @@ import Control.Parallel (parSequence_, parTraverse_)
 import Data.Array (snoc, (..), length, sort)
 import Data.Bifunctor (rmap)
 import Data.Lens ((?~))
+import Data.Maybe (fromJust)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (liftAff)
 import Effect.Class.Console as C
-import Network.Ethereum.Web3 (BigNumber, BlockNumber, Change(..), EventAction(..), EventHandler, Provider, Web3, _from, _to, event, event', eventFilter, forkWeb3)
-import Network.Ethereum.Web3.Solidity.Sizes (s256)
+import Network.Ethereum.Web3 (BigNumber, BlockNumber, Change(..), EventAction(..), EventHandler, Provider, Web3, _from, _to, event, event', eventFilter, forkWeb3, fromInt, uIntNFromBigNumber)
+import Partial.Unsafe (unsafePartial)
 import Test.Spec (SpecT, describe, it, beforeAll)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.Utils (assertWeb3, awaitNextBlock, defaultTestTxOptions, deploy, joinWeb3Fork, mkUIntN, nodeUrl)
+import Web3Spec.Live.ContractUtils (awaitNextBlock, deploy, nodeUrl)
+import Web3Spec.Live.Utils (defaultTestTxOptions, assertWeb3, joinWeb3Fork)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
@@ -43,9 +45,11 @@ spec =
 
           nVals = length vals1 + length vals2
 
-          fireE1 n = void $ assertWeb3 provider $ Multifilter.fireE1 txOpts { _value: mkUIntN s256 n }
+          mkUIntN x = unsafePartial $ fromJust $ uIntNFromBigNumber (Proxy @256) $ fromInt x
 
-          fireE2 n = void $ assertWeb3 provider $ Multifilter.fireE2 txOpts { _value: mkUIntN s256 n }
+          fireE1 n = void $ assertWeb3 provider $ Multifilter.fireE1 txOpts { _value: mkUIntN n }
+
+          fireE2 n = void $ assertWeb3 provider $ Multifilter.fireE2 txOpts { _value: mkUIntN n }
 
           filter1 = eventFilter (Proxy :: Proxy Multifilter.E1) multifilterAddress
 
