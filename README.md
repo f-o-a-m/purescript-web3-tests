@@ -13,8 +13,7 @@ You can run the tests locally via
 > docker run -d -p 8545:8545 -e ACCOUNTS_TO_CREATE=10 foamspace/cliquebait:v1.9.12
 > npm install
 > npm run build 
-> ./compile-contracts.sh
-> npm run web3-generator
+> npm run chanterelle-build
 > npm run test
 
 ```
