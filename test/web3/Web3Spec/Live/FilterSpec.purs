@@ -2,31 +2,31 @@ module Web3Spec.Live.FilterSpec (spec) where
 
 import Prelude
 
-import Chanterelle.Test (buildTestConfig)
+import Chanterelle.Internal.Utils (pollTransactionReceipt)
+import Chanterelle.Test (assertWeb3, buildTestConfig)
 import Contract.SimpleStorage as SimpleStorage
 import Control.Monad.Reader (ask)
 import Control.Monad.Trans.Class (lift)
 import Data.Array ((..), snoc, length, head, sortWith)
-import Data.Either (Either)
+import Data.Either (either)
 import Data.Lens ((?~), (.~), (^.))
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Newtype (wrap, unwrap, un)
 import Data.Ord.Down (Down(..))
 import Data.Traversable (traverse_)
 import Effect.AVar as EAVar
-import Effect.Aff (Aff, Fiber, error)
+import Effect.Aff (Aff, Fiber, error, joinFiber)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
-import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, Web3Error, _from, _fromBlock, _to, _toBlock, fromInt, event', eventFilter, forkWeb3, throwWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, _from, _fromBlock, _to, _toBlock, event', eventFilter, forkWeb3, fromInt, throwWeb3, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Api as Api
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Test.Spec (SpecT, before, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (Logger, deploy, go, hangOutTillBlock, joinWeb3Fork, nodeUrl)
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions, pollTransactionReceipt)
+import Web3Spec.Live.ContractUtils (Logger, defaultTestTxOptions, deploy, go, hangOutTillBlock, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
@@ -68,9 +68,9 @@ spec' { logger } = do
               values <- uIntsGen 3
               logger $ "Searching for values " <> show values
               fiber <- monitorUntil provider logger filter (_ == aMax values) defaultFilterOpts
-              start <- assertWeb3 provider Api.eth_blockNumber
+              start <- liftAff $ assertWeb3 provider Api.eth_blockNumber
               traverse_ setter values
-              { endingBlockV } <- joinWeb3Fork fiber
+              { endingBlockV } <- liftAff $ joinFiber fiber
               end <- liftAff $ AVar.take endingBlockV
               let
                 pastFilter =
@@ -80,7 +80,7 @@ spec' { logger } = do
                     # _toBlock
                         .~ BN end
               fiber' <- monitorUntil provider logger pastFilter (const false) defaultFilterOpts
-              { foundValuesV } <- joinWeb3Fork fiber'
+              { foundValuesV } <- liftAff $ joinFiber fiber'
               foundValues <- liftAff $ AVar.take foundValuesV
               liftAff $ foundValues `shouldEqual` values
         before (deployUniqueSimpleStorage nodeUrl logger gen)
@@ -95,7 +95,7 @@ spec' { logger } = do
                 { simpleStorageAddress, setter, uIntsGen, provider } = simpleStorageCfg
               values <- uIntsGen 3
               logger $ "Searching for values " <> show values
-              now <- assertWeb3 provider Api.eth_blockNumber
+              now <- liftAff $ assertWeb3 provider Api.eth_blockNumber
               let
                 later = wrap $ unwrap now + fromInt 3
 
@@ -108,7 +108,7 @@ spec' { logger } = do
               fiber <- monitorUntil provider logger filter (_ == aMax values) defaultFilterOpts
               hangOutTillBlock provider logger later
               traverse_ setter values
-              { foundValuesV } <- joinWeb3Fork fiber
+              { foundValuesV } <- liftAff $ joinFiber fiber
               foundValues <- liftAff $ AVar.take foundValuesV
               liftAff $ foundValues `shouldEqual` values
         before (deployUniqueSimpleStorage nodeUrl logger gen)
@@ -119,7 +119,7 @@ spec' { logger } = do
               logger $ "Searching for values " <> show values
               let
                 nValues = length values
-              now <- assertWeb3 provider Api.eth_blockNumber
+              now <- liftAff $ assertWeb3 provider Api.eth_blockNumber
               let
                 later = wrap $ unwrap now + fromInt 3
 
@@ -135,7 +135,7 @@ spec' { logger } = do
               fiber <- monitorUntil provider logger filter (_ == aMax values) defaultFilterOpts
               hangOutTillBlock provider logger later
               traverse_ setter values
-              { foundValuesV } <- joinWeb3Fork fiber
+              { foundValuesV } <- liftAff $ joinFiber fiber
               foundValues <- liftAff $ AVar.take foundValuesV
               liftAff $ foundValues `shouldEqual` values
 
@@ -169,9 +169,9 @@ fromPastToFutureTrailingBy simpleStorageCfg provider logger opts = do
     allValues = firstValues <> secondValues
   logger $ "Searching for values " <> show allValues
   fiber1 <- monitorUntil provider logger filter1 (_ == aMax firstValues) defaultFilterOpts
-  start <- assertWeb3 provider Api.eth_blockNumber
+  start <- liftAff $ assertWeb3 provider Api.eth_blockNumber
   traverse_ setter firstValues
-  _ <- joinWeb3Fork fiber1
+  _ <- liftAff $ joinFiber fiber1
   let
     filter2 =
       eventFilter (Proxy :: Proxy SimpleStorage.CountSet) simpleStorageAddress
@@ -181,7 +181,7 @@ fromPastToFutureTrailingBy simpleStorageCfg provider logger opts = do
             .~ Latest
   fiber2 <- monitorUntil provider logger filter2 (_ == aMax secondValues) opts
   traverse_ setter secondValues
-  { foundValuesV, reachedTargetTrailByV } <- joinWeb3Fork fiber2
+  { foundValuesV, reachedTargetTrailByV } <- liftAff (joinFiber fiber2)
   foundValues <- liftAff $ AVar.take foundValuesV
   liftAff $ foundValues `shouldEqual` allValues
   when (opts.trailBy > 0) do
@@ -199,12 +199,10 @@ monitorUntil
   -> FilterOpts
   -> m
        ( Fiber
-           ( Either Web3Error
-               { endingBlockV :: AVar.AVar BlockNumber
-               , foundValuesV :: AVar.AVar (Array (UIntN 256))
-               , reachedTargetTrailByV :: AVar.AVar Boolean
-               }
-           )
+           { endingBlockV :: AVar.AVar BlockNumber
+           , foundValuesV :: AVar.AVar (Array (UIntN 256))
+           , reachedTargetTrailByV :: AVar.AVar Boolean
+           }
        )
 monitorUntil provider logger filter p opts = do
   endingBlockV <- liftAff AVar.empty
@@ -234,10 +232,11 @@ monitorUntil provider logger filter p opts = do
         pure TerminateEvent
       else
         pure ContinueEvent
-  liftAff $ forkWeb3 provider
+  res <- liftAff $ forkWeb3 provider
     $ do
         _ <- event' { ev: filter } { ev: handler } opts
         pure { endingBlockV, foundValuesV, reachedTargetTrailByV }
+  pure $ either (unsafeCrashWith <<< show) identity <$> res
 
 type SimpleStorageCfg m =
   { simpleStorageAddress :: Address
@@ -263,8 +262,8 @@ deployUniqueSimpleStorage nodeUrl logger uIntsGen = liftAff $ do
           defaultTestTxOptions # _from ?~ primaryAccount
             # _to ?~ deployAddress
       logger $ "Setting count to " <> show _count
-      txHash <- assertWeb3 provider $ SimpleStorage.setCount txOptions { _count }
-      pollTransactionReceipt provider txHash mempty
+      txHash <- liftAff $ assertWeb3 provider $ SimpleStorage.setCount txOptions { _count }
+      void $ pollTransactionReceipt txHash provider
   pure
     { simpleStorageAddress: deployAddress
     , setter

@@ -2,11 +2,12 @@ module Web3Spec.Live.ComplexStorageSpec (spec) where
 
 import Prelude
 
-import Chanterelle.Test (buildTestConfig)
+import Chanterelle.Test (assertWeb3, buildTestConfig, takeEvent)
 import Contract.ComplexStorage as ComplexStorage
 import Data.Lens ((?~))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
+import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Network.Ethereum.Web3 (_from, _to)
 import Network.Ethereum.Web3.Solidity.Bytes as BytesN
@@ -20,8 +21,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Encoding.ContainersSpec (BMPString(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (deploy, nodeUrl, takeEvent)
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
+import Web3Spec.Live.ContractUtils (deploy, nodeUrl, defaultTestTxOptions)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
@@ -58,7 +58,7 @@ spec =
 
           setValsAction = ComplexStorage.setValues txOptions arg
         pure unit
-        Tuple _ _event <-
-          assertWeb3 provider
-            $ takeEvent (Proxy :: Proxy ComplexStorage.ValsSet) complexStorageAddress setValsAction
+        Tuple _ _event <- liftAff
+          $ assertWeb3 provider
+          $ takeEvent (Proxy :: Proxy ComplexStorage.ValsSet) complexStorageAddress setValsAction
         _event `shouldEqual` ComplexStorage.ValsSet { a: arg._uintVal, b: arg._intVal, c: arg._boolVal, d: arg._int224Val, e: arg._boolVectorVal, f: arg._intListVal, g: arg._stringVal, h: arg._bytes16Val, i: arg._bytes2VectorListVal }
