@@ -26,7 +26,7 @@ import Test.Spec (SpecT, before, describe, it, parallel)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (Logger, defaultTestTxOptions, deploy, go, hangOutTillBlock, nodeUrl)
+import Web3Spec.Live.ContractUtils (Logger, defaultTestTxOptions, deployScript, go, hangOutTillBlock, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
@@ -253,7 +253,7 @@ deployUniqueSimpleStorage
   -> (Int -> m (Array (UIntN 256)))
   -> m (SimpleStorageCfg m)
 deployUniqueSimpleStorage nodeUrl logger uIntsGen = liftAff $ do
-  { deployAddress, provider, primaryAccount } <- buildTestConfig nodeUrl 60 $ deploy ContractConfig.simpleStorageCfg
+  { deployAddress, provider, primaryAccount } <- buildTestConfig nodeUrl 60 $ deployScript ContractConfig.simpleStorageCfg
 
   let
     setter _count = do

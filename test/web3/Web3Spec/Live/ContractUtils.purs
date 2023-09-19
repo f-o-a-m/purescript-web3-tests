@@ -71,8 +71,8 @@ defaultTestTxOptions = defaultTransactionOptions # _gas ?~ bigGasLimit
 bigGasLimit :: BigNumber
 bigGasLimit = unsafePartial fromJust $ fromStringAs decimal "4712388"
 
-deploy :: forall a. ContractConfig a -> DeployM { deployAddress :: Address, primaryAccount :: Address }
-deploy contractConfig = do
+deployScript :: forall a. ContractConfig a -> DeployM { deployAddress :: Address, primaryAccount :: Address }
+deployScript contractConfig = do
   DeployConfig { primaryAccount } <- ask
   let txOpts = defaultTestTxOptions # _from ?~ primaryAccount
   { deployAddress } <- deployContract txOpts contractConfig

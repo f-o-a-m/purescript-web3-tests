@@ -14,12 +14,12 @@ import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deploy, nodeUrl)
+import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deployScript, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
   describe "SimpleError"
-    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.simpleErrorCfg)
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deployScript ContractConfig.simpleErrorCfg)
     $ describe "SimpleError" do
         it "can raise a left for unset values"
           $ \cfg -> do

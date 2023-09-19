@@ -17,12 +17,12 @@ import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deploy, nodeUrl)
+import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deployScript, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
   describe "Simple Storage"
-    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.simpleStorageCfg)
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deployScript ContractConfig.simpleStorageCfg)
     $ it "Can get and set a simple UInt with events"
     $ \simpleStorageCfg -> do
         newCount <- liftEffect $ randomSampleOne (UIntN.generator (Proxy @256))

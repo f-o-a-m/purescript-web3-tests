@@ -13,12 +13,12 @@ import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deploy, nodeUrl)
+import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deployScript, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
   describe "PayableTest"
-    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.payableCfg)
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deployScript ContractConfig.payableCfg)
     $ describe "PayableTest" do
         it "can send the right amount of Ether"
           $ \cfg -> do

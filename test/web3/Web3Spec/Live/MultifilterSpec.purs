@@ -21,12 +21,12 @@ import Test.Spec (SpecT, describe, it, beforeAll)
 import Test.Spec.Assertions (shouldEqual, shouldNotEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (awaitNextBlock, defaultTestTxOptions, deploy, nodeUrl)
+import Web3Spec.Live.ContractUtils (awaitNextBlock, defaultTestTxOptions, deployScript, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
   describe "Multifilter"
-    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.multiFilterCfg)
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deployScript ContractConfig.multiFilterCfg)
     $ it "can receive multiple events in the correct order" \contractCfg -> do
         let
           { deployAddress: multifilterAddress, primaryAccount: userAddress, provider } = contractCfg

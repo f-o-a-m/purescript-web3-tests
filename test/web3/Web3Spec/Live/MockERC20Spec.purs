@@ -17,12 +17,12 @@ import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deploy, nodeUrl)
+import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deployScript, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
   describe "MockERC20"
-    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.mockERC20Cfg)
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deployScript ContractConfig.mockERC20Cfg)
     $ it "can make a transfer"
     $ \cfg -> do
         amount <- liftEffect $ randomSampleOne (UIntN.generator (Proxy @256))

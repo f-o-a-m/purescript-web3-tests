@@ -21,12 +21,12 @@ import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Encoding.ContainersSpec (BMPString(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (deploy, nodeUrl, defaultTestTxOptions)
+import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deployScript, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
   describe "Complex Storage"
-    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.complexStorageCfg)
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deployScript ContractConfig.complexStorageCfg)
     $ it "Can encode and decode complex objects to / from a smart contract"
     $ \{ deployAddress: complexStorageAddress, primaryAccount: userAddress, provider } -> do
         arg <- liftEffect $ do
