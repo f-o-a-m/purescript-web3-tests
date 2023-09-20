@@ -2,7 +2,7 @@ module Web3Spec.Live.FilterSpec (spec) where
 
 import Prelude
 
-import Chanterelle.Internal.Utils (pollTransactionReceipt)
+import Chanterelle.Utils (pollTransactionReceipt)
 import Chanterelle.Test (assertWeb3, buildTestConfig)
 import Contract.SimpleStorage as SimpleStorage
 import Control.Monad.Reader (ask)

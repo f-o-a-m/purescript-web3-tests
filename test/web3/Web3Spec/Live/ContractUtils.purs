@@ -2,7 +2,7 @@ module Web3Spec.Live.ContractUtils where
 
 import Prelude
 
-import Chanterelle.Internal.Deploy (deployContract)
+import Chanterelle.Deploy (deployContract)
 import Chanterelle.Test (assertWeb3)
 import Chanterelle.Types.Deploy (ContractConfig, DeployConfig(..), DeployM)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
