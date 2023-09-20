@@ -34,7 +34,6 @@
 , sources =
   [ "src/Contract/**/*.purs"
   , "test/**/*.purs"
-  , "purescript-web3/test/web3/Web3Spec/Live/Utils.purs"
   , "purescript-web3/test/web3/Web3Spec/Encoding/ContainersSpec.purs"
   ]
 }

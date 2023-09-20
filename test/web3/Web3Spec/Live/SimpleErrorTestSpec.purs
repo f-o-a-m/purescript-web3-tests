@@ -2,7 +2,7 @@ module Web3Spec.Live.SimpleErrorTestSpec (spec) where
 
 import Prelude
 
-import Chanterelle.Test (buildTestConfig)
+import Chanterelle.Test (assertWeb3, buildTestConfig)
 import Contract.SimpleErrorTest as SimpleErrorTest
 import Data.Either (Either(..), isLeft)
 import Data.Lens ((?~))
@@ -14,13 +14,12 @@ import Test.Spec (SpecT, beforeAll, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
 import Web3Spec.Live.ContractConfig as ContractConfig
-import Web3Spec.Live.ContractUtils (deploy, nodeUrl)
-import Web3Spec.Live.Utils (assertWeb3, defaultTestTxOptions)
+import Web3Spec.Live.ContractUtils (defaultTestTxOptions, deployScript, nodeUrl)
 
 spec :: SpecT Aff Unit Aff Unit
 spec =
   describe "SimpleError"
-    $ beforeAll (buildTestConfig nodeUrl 60 $ deploy ContractConfig.simpleErrorCfg)
+    $ beforeAll (buildTestConfig nodeUrl 60 $ deployScript ContractConfig.simpleErrorCfg)
     $ describe "SimpleError" do
         it "can raise a left for unset values"
           $ \cfg -> do

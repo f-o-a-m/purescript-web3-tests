@@ -1,6 +1,6 @@
 module Web3Spec.Live.ContractConfig where
 
-import Chanterelle.Internal.Types (ContractConfig, NoArgs, constructorNoArgs, noArgs)
+import Chanterelle.Types.Deploy (ContractConfig, NoArgs, constructorNoArgs, noArgs)
 
 complexStorageCfg :: ContractConfig NoArgs
 complexStorageCfg =
