@@ -1,17 +1,7 @@
 { name = "web3-tests"
 , dependencies =
-  [ "effect"
-  , "either"
-  , "maybe"
-  , "newtype"
-  , "partial"
-  , "prelude"
-  , "profunctor-lenses"
-  , "tagged"
-  , "web3"
-  , "web3-generator"
-  , "chanterelle"
+  [ "chanterelle"
   ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs" ]
+, sources = [ "src/Bootstrap.purs" ]
 }
