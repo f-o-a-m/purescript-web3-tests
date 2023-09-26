@@ -2,8 +2,8 @@ module Web3Spec.Live.FilterSpec (spec) where
 
 import Prelude
 
-import Chanterelle.Utils (pollTransactionReceipt)
 import Chanterelle.Test (assertWeb3, buildTestConfig)
+import Chanterelle.Utils (pollTransactionReceipt)
 import Contract.SimpleStorage as SimpleStorage
 import Control.Monad.Reader (ask)
 import Control.Monad.Trans.Class (lift)
@@ -15,11 +15,11 @@ import Data.Newtype (wrap, unwrap, un)
 import Data.Ord.Down (Down(..))
 import Data.Traversable (traverse_)
 import Effect.AVar as EAVar
-import Effect.Aff (Aff, Fiber, error, joinFiber)
+import Effect.Aff (Aff, Fiber, error, joinFiber, throwError)
 import Effect.Aff.AVar as AVar
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
-import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, _from, _fromBlock, _to, _toBlock, event', eventFilter, forkWeb3, fromInt, throwWeb3, uIntNFromBigNumber)
+import Network.Ethereum.Web3 (Address, BlockNumber(..), ChainCursor(..), Change(..), EventAction(..), Filter, Provider, UIntN, _from, _fromBlock, _to, _toBlock, event', eventFilter, forkWeb3, fromInt, uIntNFromBigNumber)
 import Network.Ethereum.Web3.Api as Api
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
 import Test.Spec (SpecT, before, describe, it, parallel)
@@ -218,7 +218,7 @@ monitorUntil provider logger filter p opts = do
       chainHead <- lift Api.eth_blockNumber
       when (un BlockNumber chainHead - un BlockNumber c.blockNumber < fromInt opts.trailBy)
         $ lift
-        $ throwWeb3
+        $ throwError
         $ error "Exceded max trailBy"
       when (un BlockNumber chainHead - un BlockNumber c.blockNumber == fromInt opts.trailBy) do
         _ <- liftAff $ AVar.take reachedTargetTrailByV
@@ -263,7 +263,7 @@ deployUniqueSimpleStorage nodeUrl logger uIntsGen = liftAff $ do
             # _to ?~ deployAddress
       logger $ "Setting count to " <> show _count
       txHash <- liftAff $ assertWeb3 provider $ SimpleStorage.setCount txOptions { _count }
-      void $ pollTransactionReceipt txHash provider
+      void $ liftAff $ pollTransactionReceipt txHash provider
   pure
     { simpleStorageAddress: deployAddress
     , setter
