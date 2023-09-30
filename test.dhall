@@ -28,6 +28,7 @@
   , "tuples"
   , "web3"
   , "chanterelle"
+  , "orders"
   ]
 , packages = ./packages.dhall
 , sources =
