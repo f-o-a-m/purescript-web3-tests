@@ -9,11 +9,14 @@
                , "MockERC20"
                , "SimpleErrorTest"
                , "Multifilter"
+	       , "NestedTuples"
                ],
     "dependencies": [],
     "solc-output-selection": [],
+    "solc-evm-version": "istanbul",
     "purescript-generator": {
         "output-path": "src",
         "module-prefix": "Contract"
     }
+
 }

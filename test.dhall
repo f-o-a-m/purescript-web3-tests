@@ -15,7 +15,6 @@
   , "maybe"
   , "newtype"
   , "nonempty"
-  , "orders"
   , "parallel"
   , "parsing"
   , "partial"
