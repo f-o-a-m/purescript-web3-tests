@@ -29,6 +29,7 @@
   , "web3"
   , "chanterelle"
   , "orders"
+  , "identity"
   ]
 , packages = ./packages.dhall
 , sources =

@@ -33,10 +33,10 @@ spec =
         arg <- liftEffect $ randomSampleOne do
           a1 <- UIntN.generator (Proxy @256)
           BMPString a2 <- arbitrary @BMPString
-          let a = Tuple2 a1 a2
+          let a = { a1, a2 }
           b1 <- Gen.arrayOf ((\(BMPString s) -> s) <$> arbitrary @BMPString)
           b2 <- BytesN.generator $ Proxy @32
-          let b = Tuple2 b1 b2
+          let b = { b1, b2 }
           pure { a, b }
 
         let
@@ -49,4 +49,4 @@ spec =
         TransactionReceipt { status } <- liftAff $ pollTransactionReceipt hash cfg.provider
         status `shouldEqual` Succeeded
         eRes <- assertWeb3 cfg.provider $ NestedTuples.c txOpts Latest
-        eRes `shouldEqual` Right (Tuple2 arg.a arg.b)
+        eRes `shouldEqual` Right { c1: arg.a, c2: arg.b }
