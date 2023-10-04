@@ -16,11 +16,16 @@ contract NestedTuples {
         B c2;
     }
 
-    C public c;
+    C[] public cs;
+
+    event Update(A _a, B _b, C[] _cs);
 
     function update(A calldata a, B memory b) public returns (bool) {
+        C memory c;
         c.c1 = a;
         c.c2 = b;
+        cs.push(c);
+        emit Update(a, b, cs);
         return true;
     }
 }
