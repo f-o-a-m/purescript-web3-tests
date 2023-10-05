@@ -12,18 +12,18 @@ contract NestedTuples {
     }
 
     struct C {
-        A c1;
-        B c2;
+        A a;
+        B b;
     }
 
     C[] public cs;
 
-    event Update(A _a, B _b, C[] _cs);
+    event Update(A x, B y, C[] z);
 
     function update(A calldata a, B memory b) public returns (bool) {
         C memory c;
-        c.c1 = a;
-        c.c2 = b;
+        c.a = a;
+        c.b = b;
         cs.push(c);
         emit Update(a, b, cs);
         return true;

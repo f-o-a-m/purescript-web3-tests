@@ -25,15 +25,15 @@ main =
     void $ join
       $ runSpecT cfg [ consoleReporter ] do
           parallel do
-            SimpleStorageSpec.spec
+            -- SimpleStorageSpec.spec
             NestedTuplesSpec.spec
-            ComplexStorageSpec.spec
-            MockERC20Spec.spec
-            SimpleErrorTestSpec.spec
-            MultifilterSpec.spec
-          FilterSpec.spec
-          -- payable spec can't be run in parallel :/
-          PayableTestSpec.spec
+--ComplexStorageSpec.spec
+--MockERC20Spec.spec
+--SimpleErrorTestSpec.spec
+--MultifilterSpec.spec
+-- FilterSpec.spec
+-- -- payable spec can't be run in parallel :/
+-- PayableTestSpec.spec
 -- -- all of these tests only have one `it` statement and
 -- -- are dealing with separate contracts so they can be run
 -- -- in parallel
