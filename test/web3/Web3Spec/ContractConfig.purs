@@ -49,3 +49,11 @@ simpleStorageCfg =
   , constructor: constructorNoArgs
   , unvalidatedArgs: noArgs
   }
+
+nestedTupleCfg :: ContractConfig NoArgs
+nestedTupleCfg =
+  { filepath: "build/contracts/NestedTuples.json"
+  , name: "NestedTuples"
+  , constructor: constructorNoArgs
+  , unvalidatedArgs: noArgs
+  }

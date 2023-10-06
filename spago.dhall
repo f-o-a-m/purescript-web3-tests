@@ -1,7 +1,5 @@
 { name = "web3-tests"
-, dependencies =
-  [ "chanterelle"
-  ]
+, dependencies = [ "chanterelle" ]
 , packages = ./packages.dhall
 , sources = [ "src/Bootstrap.purs" ]
 }

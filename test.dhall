@@ -15,7 +15,6 @@
   , "maybe"
   , "newtype"
   , "nonempty"
-  , "orders"
   , "parallel"
   , "parsing"
   , "partial"
@@ -29,6 +28,8 @@
   , "tuples"
   , "web3"
   , "chanterelle"
+  , "orders"
+  , "identity"
   ]
 , packages = ./packages.dhall
 , sources =
