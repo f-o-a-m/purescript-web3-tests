@@ -33,7 +33,7 @@ main =
             ComplexStorageSpec.spec
             MockERC20Spec.spec
             SimpleErrorTestSpec.spec
-          --MultifilterSpec.spec
-          --FilterSpec.spec
+          MultifilterSpec.spec
+          -- FilterSpec.spec
           -- payable spec can't be run in parallel :/
           PayableTestSpec.spec
